@@ -7,7 +7,6 @@ import Joi from "joi";
 import { otpTemplate } from "../../utils/emailTemplate.js";
 import { User } from "../../models/user.models.js";
 import { OTP } from "../../models/otp.models.js";
-import { PasswordReset } from '../../models/passwordReset.models.js';
 import { mailSender } from "../../utils/mailSender.utils.js";
 import { errorHandler } from "../../utils/errorHandler.utils.js";
 
@@ -82,17 +81,10 @@ const registerUser = async (req, res) => {
             return errorHandler(res, 400, "User is already registered");
         }
 
-        let role = "user";
-        if (email === process.env.Mail_USER) {
-            role = "admin";
-        }
+        const latestOtp = await OTP.find({ email }).sort({ createdAt: -1 }).limit(1);
 
-        if (role === "user") {
-            const latestOtp = await OTP.find({ email }).sort({ createdAt: -1 }).limit(1);
-
-            if (latestOtp.length === 0 || otp !== latestOtp[0].otp) {
-                return errorHandler(res, 401, "Invalid or expired OTP");
-            }
+        if (latestOtp.length === 0 || otp !== latestOtp[0].otp) {
+            return errorHandler(res, 401, "Invalid or expired OTP");
         }
 
         const hashedPassword = await bcrypt.hash(password, 10);
@@ -104,16 +96,13 @@ const registerUser = async (req, res) => {
             password: hashedPassword,
             phoneNumber,
             address,
-            role
         });
 
-        if (role === "user") {
-            await OTP.deleteMany({ email });
-        }
+        await OTP.deleteMany({ email });
 
         return res.status(201).json({
             success: true,
-            user: { id: newUser._id, firstName, lastName, email, address, role },
+            user: { id: newUser._id, firstName, lastName, email, address },
             message: "Account has been created",
         });
     } catch (error) {
@@ -144,8 +133,6 @@ const loginUser = async (req, res) => {
             .json({
                 success: true,
                 user: { id: user._id, email: user.email, role: user.role, address: user.address },
-                accessToken,
-                refreshToken,
                 message: "User logged in",
             });
     } catch (error) {
@@ -226,63 +213,6 @@ const changePassword = async (req, res) => {
     }
 };
 
-const forgotPassword = async (req, res) => {
-    try {
-        const { email } = req.body;
-        const user = await User.findOne({ email });
-
-        if (!user) {
-            return errorHandler(res, 404, "User not found");
-        }
-
-        const resetToken = jwt.sign({ email: user.email }, process.env.RESET_PASSWORD_SECRET, { expiresIn: '1h' });
-
-        await PasswordReset.create({ email: user.email, token: resetToken });
-        const resetLink = `http://localhost:5000/api/auth/reset-password/${resetToken}`;
-
-        try {
-            await mailSender(user.email, "Password Reset", `Click here to reset your password: ${resetLink}`);
-        } catch (emailError) {
-            return errorHandler(res, 500, "Failed to send password reset email. Please try again.");
-        }
-
-        return res.status(200).json({ success: true, message: "Password reset email sent" });
-    } catch (error) {
-        return errorHandler(res, 500, "Error occurred while processing the request.");
-    }
-};
-
-const resetPassword = async (req, res) => {
-    try {
-        const { token } = req.params;
-        const { password, confirmPassword } = req.body;
-
-        const decoded = jwt.verify(token, process.env.RESET_PASSWORD_SECRET);
-
-        if (!decoded) {
-            return errorHandler(res, 400, "Invalid or expired token");
-        }
-
-        const resetRequest = await PasswordReset.findOne({ token });
-
-        if (!resetRequest) {
-            return errorHandler(res, 400, "Reset token not found");
-        }
-        if (password !== confirmPassword) {
-            return errorHandler(res, 400, "Passwords do not match");
-        }
-
-        const hashedPassword = await bcrypt.hash(password, 10);
-
-        await User.updateOne({ email: decoded.email }, { password: hashedPassword });
-        await PasswordReset.deleteOne({ token });
-
-        return res.status(200).json({ success: true, message: "Password has been reset successfully" });
-    } catch (error) {
-        return errorHandler(res, 500, "Error occurred while resetting the password.");
-    }
-};
-
 export {
     registerUser,
     loginUser,
@@ -290,6 +220,4 @@ export {
     logoutUser,
     refreshAccessToken,
     changePassword,
-    forgotPassword,
-    resetPassword
 };

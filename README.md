@@ -43,7 +43,7 @@ Integrations: *Nodemailer* (OTP), *Razorpay* (Payments)
 ## 📌 Installation & Setup  
 ```bash
 # Clone the repo
-git clone https://github.com/akshat-0921/E-car-selling
+git clone https://github.com/AnkitShome/E-car-selling
 
 # Install dependencies
 cd driveit-backend

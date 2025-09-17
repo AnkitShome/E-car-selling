@@ -8,7 +8,7 @@ import vehicleReducer from "./vehicleSlice";
 import brandReducer from "./brandSlice";
 import showroomReducer from "./showroomSlice";
 import favoritesReducer from "./favoritesSlice";
-import bookingReducer from "./bookingSlice";
+import bookingReducer from "./bookingslice";
 
 const authPersistConfig = {
    key: "auth",

@@ -13,7 +13,8 @@ app.use(express.urlencoded({ extended: true }));
 
 const allowedOrigins = [
    "http://localhost:5173", // main app
-   "http://localhost:5001"  // admin app
+   "http://localhost:5001",  // admin app
+   "https://driveit-frontend-n72qr60jt-ankit-shomes-projects.vercel.app", // deployed user app
 ];
 
 app.use(cors({

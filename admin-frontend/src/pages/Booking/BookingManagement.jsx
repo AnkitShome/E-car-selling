@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { useNavigate } from "react-router-dom"
 import {
    ArrowLeft,
@@ -18,12 +18,11 @@ import {
    Loader2,
 } from "lucide-react"
 import { toast } from "react-toastify"
-import axiosInstance from "../lib/axios"
+import axiosInstance from "../../lib/axios" // adjust path if needed
 
 const BookingManagement = () => {
    const [loading, setLoading] = useState(true)
    const [bookings, setBookings] = useState([])
-   const [filteredBookings, setFilteredBookings] = useState([])
    const [searchTerm, setSearchTerm] = useState("")
    const [statusFilter, setStatusFilter] = useState("all")
    const [updatingStatus, setUpdatingStatus] = useState(null)
@@ -41,10 +40,6 @@ const BookingManagement = () => {
       loadBookings()
    }, [])
 
-   useEffect(() => {
-      filterBookings()
-   }, [searchTerm, statusFilter, bookings])
-
    const loadBookings = async () => {
       setLoading(true)
       try {
@@ -52,54 +47,52 @@ const BookingManagement = () => {
          setBookings(res.data.bookings || [])
       } catch (error) {
          toast.error("Failed to load bookings")
+      } finally {
+         setLoading(false)
       }
-      setLoading(false)
-   }
-
-   const filterBookings = () => {
-      let filtered = bookings
-
-      if (searchTerm) {
-         filtered = filtered.filter(
-            (booking) =>
-               booking.userId?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-               booking.vehicleId?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-               booking.showroomId?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-               booking.payment?.razorpayOrderId?.toLowerCase().includes(searchTerm.toLowerCase()),
-         )
-      }
-
-      if (statusFilter !== "all") {
-         filtered = filtered.filter((booking) => booking.status === statusFilter)
-      }
-
-      setFilteredBookings(filtered)
    }
 
    const updateBookingStatus = async (bookingId, newStatus) => {
       setUpdatingStatus(bookingId)
       try {
-         await axiosInstance.put(`/booking/admin/update-status/${bookingId}`, {
-            status: newStatus,
-         })
+         await axiosInstance.put(`/booking/admin/update-status/${bookingId}`, { status: newStatus })
          toast.success("Booking status updated successfully")
-         loadBookings()
+         await loadBookings()
       } catch (error) {
          toast.error(error?.response?.data?.msg || "Failed to update booking status")
+      } finally {
+         setUpdatingStatus(null)
       }
-      setUpdatingStatus(null)
    }
 
-   const getStatusInfo = (status) => {
-      return bookingStatuses.find((s) => s.value === status) || bookingStatuses[0]
-   }
+   const getStatusInfo = (status) =>
+      bookingStatuses.find((s) => s.value === status) || bookingStatuses[0]
 
-   const formatCurrency = (amount) => {
-      return new Intl.NumberFormat("en-IN", {
-         style: "currency",
-         currency: "INR",
-      }).format(amount)
-   }
+   const formatCurrency = (amount) =>
+      new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR" }).format(amount)
+
+   // derive filtered bookings
+   const filteredBookings = useMemo(() => {
+      let filtered = bookings
+
+      if (searchTerm.trim()) {
+         const q = searchTerm.toLowerCase()
+         filtered = filtered.filter(
+            (b) =>
+               b.userId?.name?.toLowerCase().includes(q) ||
+               b.vehicleId?.name?.toLowerCase().includes(q) ||
+               b.showroomId?.name?.toLowerCase().includes(q) ||
+               b.payment?.razorpayOrderId?.toLowerCase().includes(q) ||
+               b._id?.toLowerCase().includes(q)
+         )
+      }
+
+      if (statusFilter !== "all") {
+         filtered = filtered.filter((b) => b.status === statusFilter)
+      }
+
+      return filtered
+   }, [bookings, searchTerm, statusFilter])
 
    if (loading) {
       return (
@@ -117,21 +110,22 @@ const BookingManagement = () => {
          <div className="max-w-7xl mx-auto">
             {/* Header */}
             <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-               <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                     <button
-                        onClick={() => navigate("/admin")}
-                        className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                     >
-                        <ArrowLeft size={20} />
-                     </button>
-                     <div>
-                        <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
-                           <Calendar className="text-blue-600" />
-                           Booking Management
-                        </h1>
-                        <p className="text-gray-600 mt-1">Manage vehicle booking orders and status updates</p>
-                     </div>
+               <div className="flex items-center gap-4">
+                  <button
+                     type="button"
+                     onClick={() => navigate("/admin")}
+                     className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                  >
+                     <ArrowLeft size={20} />
+                  </button>
+                  <div>
+                     <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
+                        <Calendar className="text-blue-600" />
+                        Booking Management
+                     </h1>
+                     <p className="text-gray-600 mt-1">
+                        Manage vehicle booking orders and status updates
+                     </p>
                   </div>
                </div>
             </div>
@@ -142,7 +136,7 @@ const BookingManagement = () => {
                   <div className="relative">
                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
                      <input
-                        type="text"
+                        type="search"
                         placeholder="Search by customer, vehicle, showroom, or order ID..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
@@ -179,9 +173,7 @@ const BookingManagement = () => {
                               <p className="text-sm font-medium text-gray-600">{status.label}</p>
                               <p className="text-2xl font-bold text-gray-900">{count}</p>
                            </div>
-                           <div
-                              className={`p-2 rounded-lg ${status.color.replace("text-", "text-").replace("bg-", "bg-").replace("100", "50")}`}
-                           >
+                           <div className={`p-2 rounded-lg ${status.color}`}>
                               <IconComponent size={20} />
                            </div>
                         </div>
@@ -193,15 +185,21 @@ const BookingManagement = () => {
             {/* Bookings List */}
             <div className="bg-white rounded-lg shadow-sm">
                <div className="p-6 border-b border-gray-200">
-                  <h2 className="text-xl font-semibold text-gray-900">Bookings ({filteredBookings.length})</h2>
+                  <h2 className="text-xl font-semibold text-gray-900">
+                     Bookings ({filteredBookings.length})
+                  </h2>
                </div>
 
                {filteredBookings.length === 0 ? (
                   <div className="p-12 text-center">
                      <Calendar className="mx-auto text-gray-400 mb-4" size={48} />
-                     <h3 className="text-xl font-semibold text-gray-900 mb-2">No bookings found</h3>
+                     <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                        No bookings found
+                     </h3>
                      <p className="text-gray-600">
-                        {searchTerm || statusFilter !== "all" ? "Try adjusting your filters" : "No bookings have been made yet"}
+                        {searchTerm || statusFilter !== "all"
+                           ? "Try adjusting your filters"
+                           : "No bookings have been made yet"}
                      </p>
                   </div>
                ) : (
@@ -241,7 +239,9 @@ const BookingManagement = () => {
                                           <User className="text-gray-400" size={16} />
                                           <div>
                                              <p className="text-sm text-gray-600">Customer</p>
-                                             <p className="font-medium text-gray-900">{booking.userId?.name || "Unknown Customer"}</p>
+                                             <p className="font-medium text-gray-900">
+                                                {booking.userId?.name || "Unknown Customer"}
+                                             </p>
                                           </div>
                                        </div>
 
@@ -270,7 +270,10 @@ const BookingManagement = () => {
                                           <div>
                                              <p className="text-sm text-gray-600">Stock Status</p>
                                              <p
-                                                className={`font-medium ${booking.isVehicleInStock ? "text-green-600" : "text-orange-600"}`}
+                                                className={`font-medium ${booking.isVehicleInStock
+                                                      ? "text-green-600"
+                                                      : "text-orange-600"
+                                                   }`}
                                              >
                                                 {booking.isVehicleInStock ? "In Stock" : "Out of Stock"}
                                              </p>
@@ -280,23 +283,31 @@ const BookingManagement = () => {
 
                                     {/* Payment Details */}
                                     <div className="bg-gray-50 rounded-lg p-4 mb-4">
-                                       <h4 className="font-medium text-gray-900 mb-2">Payment Details</h4>
+                                       <h4 className="font-medium text-gray-900 mb-2">
+                                          Payment Details
+                                       </h4>
                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                                           <div>
                                              <span className="text-gray-600">Advance Paid:</span>
                                              <p className="font-medium text-green-600">
-                                                {formatCurrency(booking.payment?.advancePayment || 0)}
+                                                {formatCurrency(
+                                                   booking.payment?.advancePayment || 0
+                                                )}
                                              </p>
                                           </div>
                                           <div>
                                              <span className="text-gray-600">Pending:</span>
                                              <p className="font-medium text-orange-600">
-                                                {formatCurrency(booking.payment?.pendingPayment || 0)}
+                                                {formatCurrency(
+                                                   booking.payment?.pendingPayment || 0
+                                                )}
                                              </p>
                                           </div>
                                           <div>
                                              <span className="text-gray-600">Payment Status:</span>
-                                             <p className="font-medium text-gray-900">{booking.payment?.paymentStatus || "Unknown"}</p>
+                                             <p className="font-medium text-gray-900">
+                                                {booking.payment?.paymentStatus || "Unknown"}
+                                             </p>
                                           </div>
                                        </div>
                                     </div>
@@ -304,7 +315,9 @@ const BookingManagement = () => {
                                     {/* User Notes */}
                                     {booking.userNotes && (
                                        <div className="bg-blue-50 rounded-lg p-4">
-                                          <h4 className="font-medium text-gray-900 mb-2">Customer Notes</h4>
+                                          <h4 className="font-medium text-gray-900 mb-2">
+                                             Customer Notes
+                                          </h4>
                                           <p className="text-gray-700 text-sm">{booking.userNotes}</p>
                                        </div>
                                     )}
@@ -313,17 +326,23 @@ const BookingManagement = () => {
                                  {/* Status Update Actions */}
                                  <div className="ml-6">
                                     <div className="bg-gray-50 rounded-lg p-4">
-                                       <h4 className="font-medium text-gray-900 mb-3">Update Status</h4>
+                                       <h4 className="font-medium text-gray-900 mb-3">
+                                          Update Status
+                                       </h4>
                                        <div className="space-y-2">
                                           {bookingStatuses.map((status) => {
                                              const StatusIcon = status.icon
-                                             const isCurrentStatus = (booking.status || "pending") === status.value
+                                             const isCurrentStatus =
+                                                (booking.status || "pending") === status.value
                                              const isUpdating = updatingStatus === booking._id
 
                                              return (
                                                 <button
                                                    key={status.value}
-                                                   onClick={() => updateBookingStatus(booking._id, status.value)}
+                                                   type="button"
+                                                   onClick={() =>
+                                                      updateBookingStatus(booking._id, status.value)
+                                                   }
                                                    disabled={isCurrentStatus || isUpdating}
                                                    className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${isCurrentStatus
                                                          ? `${status.color} cursor-not-allowed`
@@ -336,7 +355,9 @@ const BookingManagement = () => {
                                                       <StatusIcon size={14} />
                                                    )}
                                                    {status.label}
-                                                   {isCurrentStatus && <span className="ml-auto text-xs">(Current)</span>}
+                                                   {isCurrentStatus && (
+                                                      <span className="ml-auto text-xs">(Current)</span>
+                                                   )}
                                                 </button>
                                              )
                                           })}

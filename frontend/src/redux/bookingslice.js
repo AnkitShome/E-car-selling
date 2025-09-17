@@ -1,7 +1,7 @@
+// frontend/src/redux/bookingSlice.js
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import { bookingAPI } from "../api";
+import { bookingAPI } from "../api/index.js"; // explicit file import
 
-// (optional) still here if used elsewhere
 export const createBooking = createAsyncThunk(
    "booking/createBooking",
    async ({ showroomId, vehicleId, payload }, thunkAPI) => {
@@ -14,7 +14,6 @@ export const createBooking = createAsyncThunk(
    }
 );
 
-// ✅ Correctly call bookingAPI.getHistory()
 export const fetchBookingHistory = createAsyncThunk(
    "booking/fetchHistory",
    async (_, thunkAPI) => {
@@ -32,7 +31,6 @@ const initialState = {
    error: null,
    success: false,
    booking: null,
-
    history: [],
    historyLoading: false,
    historyError: null,
@@ -65,8 +63,6 @@ const bookingSlice = createSlice({
             state.loading = false;
             state.error = action.payload;
          })
-
-         // ✅ History cases
          .addCase(fetchBookingHistory.pending, (state) => {
             state.historyLoading = true;
             state.historyError = null;

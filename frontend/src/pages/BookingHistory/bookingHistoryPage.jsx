@@ -1,6 +1,7 @@
 import React, { useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import { fetchBookingHistory } from "../../redux/bookingSlice"; // ✅ case fixed
+// import { fetchBookingHistory } from "../../redux/bookingSlice"; // ✅ case fixed
+import { fetchBookingHistory } from "../../redux/bookingslice";
 import {
    Loader,
    ServerCrash,

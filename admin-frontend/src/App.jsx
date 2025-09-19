@@ -55,22 +55,22 @@ const App = () => {
             <Route path="/admin" element={<AdminHome />} />
 
             {/* Protected routes */}
-            {isLoggedIn && (
-               <>
-                  <Route path="/admin/brands" element={<BrandList />} />
-                  <Route path="/admin/brand/add" element={<AddBrand />} />
-                  <Route path="/admin/brand/:brandId/vehicles" element={<VehicleList />} />
-                  <Route path="/admin/brand/:brandId/add-vehicle" element={<AddVehicle />} />
-                  <Route path="/admin/showrooms" element={<ShowroomList />} />
-                  <Route path="/admin/showrooms/add" element={<AddShowroom />} />
-                  <Route path="/admin/showrooms/:showroomId" element={<ShowroomDetail />} />
+            {/* {isLoggedIn && (
+               <> */}
+            <Route path="/admin/brands" element={<BrandList />} />
+            <Route path="/admin/brand/add" element={<AddBrand />} />
+            <Route path="/admin/brand/:brandId/vehicles" element={<VehicleList />} />
+            <Route path="/admin/brand/:brandId/add-vehicle" element={<AddVehicle />} />
+            <Route path="/admin/showrooms" element={<ShowroomList />} />
+            <Route path="/admin/showrooms/add" element={<AddShowroom />} />
+            <Route path="/admin/showrooms/:showroomId" element={<ShowroomDetail />} />
 
 
-                  <Route path="/admin/inventory" element={<InventoryManagement />} />
-                  <Route path="/admin/inventory/:showroomId" element={<ShowroomInventory />} />
-                  <Route path="/admin/inventory/add/:showroomId" element={<AddVehicleToInventory />} />
-               </>
-            )}
+            <Route path="/admin/inventory" element={<InventoryManagement />} />
+            <Route path="/admin/inventory/:showroomId" element={<ShowroomInventory />} />
+            <Route path="/admin/inventory/add/:showroomId" element={<AddVehicleToInventory />} />
+            {/* </>
+            )} */}
          </Routes>
       </>
    );

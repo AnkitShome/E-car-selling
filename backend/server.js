@@ -15,7 +15,8 @@ const allowedOrigins = [
    "http://localhost:5173", // main app
    "http://localhost:5001",  // admin app
    "https://driveit-frontend-n72qr60jt-ankit-shomes-projects.vercel.app", // deployed user app
-   "https://driveitadmin.vercel.app"
+   "https://driveitadmin.vercel.app",
+   "https://driveit-frontend.vercel.app"
 ];
 
 app.use(cors({

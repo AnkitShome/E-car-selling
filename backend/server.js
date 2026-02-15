@@ -5,7 +5,7 @@ import 'dotenv/config';
 import connectDB from "./config/mongodb.js";
 
 const app = express();
-const port = 4000;
+const port = process.env.PORT || 4000;
 
 // Middleware
 app.use(express.json());
@@ -13,16 +13,23 @@ app.use(express.urlencoded({ extended: true }));
 
 const allowedOrigins = [
    "http://localhost:5173", // main app
-   "http://localhost:5001"  // admin app
+   "http://localhost:5001",  // admin app
+   "https://driveit-frontend-n72qr60jt-ankit-shomes-projects.vercel.app", // deployed user app
+   "https://driveitadmin.vercel.app",
+   "https://driveit-frontend.vercel.app"
 ];
 
 app.use(cors({
    origin: function (origin, callback) {
       if (!origin) return callback(null, true); // Allow Postman or curl
 
+      // if (allowedOrigins.includes(origin)) {
+      //    return callback(null, origin);  // ✅ return the exact origin, not "true"
+      // }
       if (allowedOrigins.includes(origin)) {
-         return callback(null, origin);  // ✅ return the exact origin, not "true"
-      } else {
+         return callback(null, true);   // ✅ correct
+      }
+      else {
          return callback(new Error("Not allowed by CORS"));
       }
    },

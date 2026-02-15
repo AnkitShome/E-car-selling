@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { createBooking } from "../../redux/bookingSlice";
+import { createBooking } from "../../redux/bookingslice";
 // Icons are added for visual enhancement only; they don't change logic
 import { CalendarDays, Banknote, ShieldCheck, CheckCircle, XCircle } from 'lucide-react';
 
